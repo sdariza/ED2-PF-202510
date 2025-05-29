@@ -31,7 +31,7 @@ def get_data(connection: connect, query: str):
     my_cursor.close()
     return data
 
-
+#pausa, comentar
 cnx = get_connection()
 
 print("Connection established")
