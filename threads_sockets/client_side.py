@@ -3,7 +3,7 @@ import json
 import csv
 import os
 
-HOST = '127.0.0.1'
+HOST = '192.168.18.91'
 PORT = 8080
 
 # Solicita export de datos al servidor

@@ -15,7 +15,7 @@ from algorithms.quicksort import quicksort_wrapper
 from algorithms.radixsort import radixsort_wrapper
 from algorithms.shellsort import shellsort_wrapper
 
-HOST = '127.0.0.1' #máquina local donde está el servidor
+HOST = '192.168.18.91' #máquina local donde está el servidor
 PORT = 8080
 
 FORMATS = ['csv', 'json', 'feather', 'parquet']
