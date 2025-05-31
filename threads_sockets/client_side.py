@@ -1,6 +1,7 @@
 import socket
 import json
 import csv
+import os
 
 HOST = '127.0.0.1'
 PORT = 8080
@@ -17,7 +18,7 @@ def request_export():
         #interpresta la cadena recibida como json y lo convierte en un diccionario de python
         resp = json.loads(data)
         if 'export' in resp:
-            print("[✓] Export formats created:")
+            print("[✓] Export formats created:", resp['export'])
         else:
             raise RuntimeError(resp.get('error', 'Unknown error'))
 
@@ -37,8 +38,10 @@ def request_all():
 
 # Guarda cada algoritmo en CSV con sus tiempos por formato
 def save_csvs(results):
+    output_dir = os.path.join(os.path.dirname(__file__), 'results')
+    os.makedirs(output_dir, exist_ok=True)
     for algo, times in results.items():
-        fname = f"{algo}_times.csv"
+        fname = os.path.join(output_dir, f"{algo}_times.csv")
         with open(fname, 'w', newline='') as f:
             w = csv.writer(f)
             w.writerow(["Formato","Tiempo (s)"])

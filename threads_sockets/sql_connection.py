@@ -31,15 +31,3 @@ def get_data(connection: connect, query: str):
     my_cursor.close()
     return data
 
-#pausa, comentar
-cnx = get_connection()
-
-print("Connection established")
-
-data = get_data(cnx, "SELECT * FROM UN.VENTAS LIMIT 10")
-
-
-df = pd.DataFrame(data, columns=['ID_VENTA', 'FECHA_VENTA', 'ID_CLIENTE', 'ID_EMPLEADO',
-                  'ID_PRODUCTO', 'CANTIDAD', 'PRECIO_UNITARIO', 'DESCUENTO', 'FORMA_PAGO'])
-
-print(df)

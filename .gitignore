@@ -1,2 +1,4 @@
 ipynbs/.ipynb_checkpoints
 exports/
+algorithms/__pycache__/
+threads_sockets/__pycache__/

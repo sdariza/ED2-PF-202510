@@ -2,11 +2,17 @@ import socket
 import threading
 import json
 import time
-import os
 import pandas as pd
 from sql_connection import get_data, get_connection
 from export_utils import export_csv, export_json, export_parquet, export_feather
-from sorting_algorithms import quicksort, mergesort, radixsort, shellsort
+#from sorting_algorithms import quicksort, mergesort, radixsort, shellsort
+import sys
+import os
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
+from algorithms.mergesort import mergesort_wrapper
+from algorithms.quicksort import quicksort_wrapper
+from algorithms.radixsort import radixsort_wrapper
+from algorithms.shellsort import shellsort_wrapper
 
 HOST = '127.0.0.1' #máquina local donde está el servidor
 PORT = 8080
@@ -14,10 +20,10 @@ PORT = 8080
 FORMATS = ['csv', 'json', 'feather', 'parquet']
 #Cada algoritmo está asociado a su método
 ALGORITHMS = {
-    'quicksort': quicksort,
-    'mergesort': mergesort,
-    'radixsort': radixsort,
-    'shellsort': shellsort
+    'quicksort': quicksort_wrapper,
+    'mergesort': mergesort_wrapper,
+    'radixsort': radixsort_wrapper,
+    'shellsort': shellsort_wrapper
 }
 
 # ==== Función de exportación de datos ====  
@@ -32,6 +38,7 @@ def export_data_from_db():
 
     #se crea la conección a la base de datos y se obtienen todos los registros de la tabla ventas
     cnx = get_connection()
+    print("Connection established with database")
     data = get_data(cnx, "SELECT * FROM UN.VENTAS")
     #construye un dataframe con las columnas indicadas
     df = pd.DataFrame(data, columns=[
