@@ -1,0 +1,5 @@
+Formato,Tiempo Lectura (s),Tiempo Orden (s)
+json,0.08169,0.003909
+csv,0.076318,0.003322
+parquet,0.143273,0.003447
+feather,0.151913,0.00325
