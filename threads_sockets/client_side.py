@@ -37,6 +37,7 @@ def request_all():
         return json.loads(buffer.strip())
 
 # Guarda cada algoritmo en CSV con sus tiempos por formato
+# Crea carpeta 'results' si no existe
 def save_csvs(results):
     output_dir = os.path.join(os.path.dirname(__file__), 'results')
     os.makedirs(output_dir, exist_ok=True)
@@ -44,9 +45,15 @@ def save_csvs(results):
         fname = os.path.join(output_dir, f"{algo}_times.csv")
         with open(fname, 'w', newline='') as f:
             w = csv.writer(f)
-            w.writerow(["Formato","Tiempo (s)"])
-            for fmt, t in times.items():
-                w.writerow([fmt, t])
+            #En el csv se guardan los datos como: formato, tiempo de lectura, tiempo de orden
+            w.writerow(["Formato", "Tiempo Lectura (s)", "Tiempo Orden (s)"])
+            for fmt, vals in times.items():
+                if 'error' in vals:
+                    w.writerow([fmt, vals['error'], ""])
+                else:
+                    read_t = vals['read_time']
+                    sort_t = vals['sort_time']
+                    w.writerow([fmt, read_t, sort_t])
         print(f"[✓] {fname} guardado")
 
 if __name__ == '__main__':

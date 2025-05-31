@@ -8,6 +8,7 @@ from export_utils import export_csv, export_json, export_parquet, export_feather
 #from sorting_algorithms import quicksort, mergesort, radixsort, shellsort
 import sys
 import os
+import csv
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 from algorithms.mergesort import mergesort_wrapper
 from algorithms.quicksort import quicksort_wrapper
@@ -30,44 +31,59 @@ ALGORITHMS = {
 def export_data_from_db():
     """
     Consulta la base, genera DataFrame y exporta los 4 formatos en ./exports.
+    Además crea un CSV con los tamaños de cada archivo.
     """
-    #los formatos se pondrán en una carpeta llamada exports dentro de threads_sockets
+    # Directorio base y carpeta de exports
     base = os.path.dirname(__file__)
     export_dir = os.path.join(base, 'exports')
     os.makedirs(export_dir, exist_ok=True)
 
-    #se crea la conección a la base de datos y se obtienen todos los registros de la tabla ventas
+    # Traer datos
     cnx = get_connection()
-    print("Connection established with database")
     data = get_data(cnx, "SELECT * FROM UN.VENTAS")
-    #construye un dataframe con las columnas indicadas
     df = pd.DataFrame(data, columns=[
         'ID_VENTA', 'FECHA_VENTA', 'ID_CLIENTE', 'ID_EMPLEADO',
         'ID_PRODUCTO', 'CANTIDAD', 'PRECIO_UNITARIO', 'DESCUENTO', 'FORMA_PAGO'
     ])
 
-    #define las rutas donde estarán los archivos
+    # Rutas de archivos
     paths = {
-        'csv':os.path.join(export_dir, 'ventas.csv'),
-        'json':os.path.join(export_dir, 'ventas.json'),
-        'parquet':os.path.join(export_dir, 'ventas.parquet'),
-        'feather':os.path.join(export_dir, 'ventas.feather')
+        'csv':     os.path.join(export_dir, 'ventas.csv'),
+        'json':    os.path.join(export_dir, 'ventas.json'),
+        'parquet': os.path.join(export_dir, 'ventas.parquet'),
+        'feather': os.path.join(export_dir, 'ventas.feather')
     }
 
-    #se utilizan las funciones que están en export_utils
-    export_csv(df,paths['csv'])
-    export_json(df,paths['json'])
-    export_parquet(df,paths['parquet'])
-    export_feather(df,paths['feather'])
+    # Exportar a cada formato
+    export_csv(df,     paths['csv'])
+    export_json(df,    paths['json'])
+    export_parquet(df, paths['parquet'])
+    export_feather(df, paths['feather'])
 
-    #devuelve un listado de strings para informar al cliente que el proceso fue exitoso
-    #"csv OK", "json OK"...
+    # Después de exportar, medir tamaños de cada archivo
+    sizes = []  # lista de tuplas (formato, tamaño en bytes)
+    for fmt, path in paths.items():
+        try:
+            size_bytes = os.path.getsize(path)
+            sizes.append((fmt, size_bytes))
+        except OSError:
+            sizes.append((fmt, None))
+
+    # Crear CSV con tamaños en la carpeta exports
+    sizes_csv_path = os.path.join(export_dir, 'filesizes.csv')
+    with open(sizes_csv_path, 'w', newline='', encoding='utf-8') as f:
+        writer = csv.writer(f)
+        writer.writerow(['Formato', 'Tamaño (bytes)'])
+        for fmt, sz in sizes:
+            writer.writerow([fmt, sz if sz is not None else 'Error'])
+
+    # Devolver estados de exportación
     return [f"{fmt} OK" for fmt in FORMATS]
 
-# ==== Carga datos para sorting ====  
-def load_data(fmt):
-    #construye la ruta del archivo a leer
+# ==== Carga datos para sorting (midiendo tiempo de lectura con time.time) ====  
+def load_data_with_timing(fmt):
     path = os.path.join(os.path.dirname(__file__), 'exports', f"ventas.{fmt}")
+    start_read = time.time()
     if fmt == 'csv':
         df = pd.read_csv(path)
     elif fmt == 'json':
@@ -82,23 +98,28 @@ def load_data(fmt):
         df = pd.read_parquet(path)
     else:
         raise ValueError(f"Formato no soportado: {fmt}")
+    end_read = time.time()
+    read_time = round(end_read - start_read, 15)
     #Retorna la columna cantidad como lista de valores a ordenar por el algoritmo
-    return df['CANTIDAD'].tolist()
+    return df['CANTIDAD'].tolist(), read_time
 
-# ==== Ordenar y medir tiempo ====
-def sort_and_time(algorithm_func, format_name, result_dict):
+# ==== Sorting y medición (lectura + ordenamiento con time.time) ====  
+def sort_and_time(fmt, algorithm_func, result_dict):
     try:
-        data = load_data(format_name)
-        #comienza a medir el tiempo
-        start = time.time()
-        #ejecuta el algoritmo dado
-        algorithm_func(data.copy())  # Copia para no modificar el original
-        #termina de medir el tiempo
-        end = time.time()
-        #guarda en un diccionario el tiempo obtenido y string de error si algo falla
-        result_dict[format_name] = round(end - start, 15)
+        # Mide tiempo de lectura y obtiene datos
+        data, read_time = load_data_with_timing(fmt)
+        # Mide tiempo de ordenamiento
+        start_sort = time.time()
+        algorithm_func(data.copy()) # Copia para no modificar el original
+        end_sort = time.time()
+        sort_time = round(end_sort - start_sort, 15)
+        # Guarda ambos tiempos en el diccionario o un string de error si algo falla
+        result_dict[fmt] = {
+            'read_time': read_time,
+            'sort_time': sort_time
+        }
     except Exception as e:
-        result_dict[format_name] = f"Error: {str(e)}"
+        result_dict[fmt] = {'error': str(e)}
 
 # ==== Manejo de cliente ====  
 def handle_client(conn, addr):
@@ -129,8 +150,8 @@ def handle_client(conn, addr):
                         res = {}
                         fmt_threads = [] #lista de hilos de los formatos
                         for fmt in FORMATS:
-                            #                                         f = algoritmo, fmt = format, res = diccionario resultante
-                            t = threading.Thread(target=sort_and_time, args=(f, fmt, res))
+                            #                                         fmt = format, f = algoritmo, res = diccionario resultante
+                            t = threading.Thread(target=sort_and_time, args=(fmt, f, res))
                             t.start(); fmt_threads.append(t)
                         for t in fmt_threads:
                             t.join()
