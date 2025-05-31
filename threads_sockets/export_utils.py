@@ -1,5 +1,4 @@
 import pandas as pd
-import fastavro
 import pyarrow as pa
 import pyarrow.parquet as pq
 
