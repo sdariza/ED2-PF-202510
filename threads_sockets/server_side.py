@@ -65,7 +65,8 @@ def export_data_from_db():
     for fmt, path in paths.items():
         try:
             size_bytes = os.path.getsize(path)
-            sizes.append((fmt, size_bytes))
+            size_mb = round(size_bytes / (1024 * 1024), 4)  # Convertir a MB
+            sizes.append((fmt,size_mb))
         except OSError:
             sizes.append((fmt, None))
 
