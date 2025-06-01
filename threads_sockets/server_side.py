@@ -252,7 +252,6 @@ def main():
     Configura el socket del servidor, inicia el hilo monitor de inactividad,
     y maneja el bucle principal de aceptación de conexiones.
     """
-    global server_should_stop  # Acceso a la variable global de control
     
     # ===== CONFIGURACIÓN DEL HILO MONITOR =====
     # Crear y iniciar el hilo que monitoreará la inactividad del servidor
